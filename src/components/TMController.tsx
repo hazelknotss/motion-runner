@@ -1,16 +1,16 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { GameAction, ClassMapping, PredictionResult, TMModelInfo } from '../types';
-import { 
-  Camera, 
-  CameraOff, 
-  Info, 
-  HelpCircle, 
-  Sliders, 
-  Link2, 
-  ShieldAlert, 
-  Lightbulb, 
-  Video, 
-  CheckCircle2, 
+import {
+  Camera,
+  CameraOff,
+  Info,
+  HelpCircle,
+  Sliders,
+  Link2,
+  ShieldAlert,
+  Lightbulb,
+  Video,
+  CheckCircle2,
   Loader2,
   Gamepad2,
   Settings,
@@ -39,7 +39,7 @@ export const TMController: React.FC<TMControllerProps> = ({
   const [libError, setLibError] = useState<string | null>(null);
 
   // Model parameters and user url input
-  const [modelUrl, setModelUrl] = useState('');
+  const [modelUrl, setModelUrl] = useState('/model/');
   const [modelState, setModelState] = useState<TMModelInfo>({
     url: '',
     isLoading: false,
@@ -71,11 +71,11 @@ export const TMController: React.FC<TMControllerProps> = ({
     setLibsLoading(true);
     setLibError(null);
     try {
-      // 1. Load TensorFlow.js core
-      await injectScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js', 'tfjs');
-      // 2. Load Teachable Machine Image SDK
-      await injectScript('https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.5/dist/teachablemachine-image.min.js', 'tmImage');
-      
+      // 1. Load TensorFlow.js core — must match model's tfjsVersion (1.7.4)
+      await injectScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.7.4/dist/tf.min.js', 'tfjs');
+      // 2. Load Teachable Machine Image SDK — must match packageVersion (0.8.4)
+      await injectScript('https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.4/dist/teachablemachine-image.min.js', 'tmImage');
+
       setLibsReady(true);
     } catch (e: any) {
       console.error('Failed to resolve CDN libraries', e);
@@ -119,8 +119,8 @@ export const TMController: React.FC<TMControllerProps> = ({
     } catch (e: any) {
       console.error('Camera access rejected', e);
       setWebcamError(
-        e.name === 'NotAllowedError' 
-          ? 'Webcam permission denied. Please allow camera access in browser settings.' 
+        e.name === 'NotAllowedError'
+          ? 'Webcam permission denied. Please allow camera access in browser settings.'
           : 'Could not access web camera. Check if it is occupied by another application.'
       );
     }
@@ -146,10 +146,17 @@ export const TMController: React.FC<TMControllerProps> = ({
     };
   }, []);
 
+  // Automatically load local model once SDK libraries are ready
+  useEffect(() => {
+    if (libsReady) {
+      handleLoadModel();
+    }
+  }, [libsReady]);
+
   // Fetch / Load the custom model from Teachable Machine
   const handleLoadModel = async () => {
     if (!modelUrl.trim()) return;
-    
+
     // Normalize URL
     let absoluteUrl = modelUrl.trim();
     if (!absoluteUrl.endsWith('/')) {
@@ -184,16 +191,16 @@ export const TMController: React.FC<TMControllerProps> = ({
 
       // Extract classification labels
       const classes = loadedModel.getClassLabels() as string[];
-      
+
       // Setup initial mappings:
       // Try to intelligently match standard labels like jump, crouch, idle or similar
       const initialMappings = classes.map((cl, idx) => {
         const lower = cl.toLowerCase();
         let action: GameAction = 'neutral';
-        
-        if (lower.includes('jump') || lower.includes('up') || lower.includes('high') || lower.includes('fly')) {
+
+        if (lower.includes('jump') || lower.includes('up') || lower.includes('high') || lower.includes('fly') || lower.includes('happy') || lower.includes('arms up')) {
           action = 'jump';
-        } else if (lower.includes('crouch') || lower.includes('down') || lower.includes('duck') || lower.includes('low')) {
+        } else if (lower.includes('crouch') || lower.includes('down') || lower.includes('duck') || lower.includes('low') || lower.includes('sad') || lower.includes('ducking')) {
           action = 'crouch';
         } else if (idx === 0) {
           action = 'neutral'; // default idle
@@ -295,13 +302,13 @@ export const TMController: React.FC<TMControllerProps> = ({
 
   // Adjust Mapping configuration
   const handleMapAction = (className: string, action: GameAction) => {
-    setMappings(prev => prev.map(m => 
+    setMappings(prev => prev.map(m =>
       m.className === className ? { ...m, action } : m
     ));
   };
 
   const handleMapThreshold = (className: string, val: number) => {
-    setMappings(prev => prev.map(m => 
+    setMappings(prev => prev.map(m =>
       m.className === className ? { ...m, threshold: val } : m
     ));
   };
@@ -329,9 +336,8 @@ export const TMController: React.FC<TMControllerProps> = ({
           <span className="text-[10px] font-mono font-black text-black uppercase">Source:</span>
           <button
             onClick={toggleControlSource}
-            className={`flex items-center gap-1.5 px-3 py-1 font-mono text-xs font-black uppercase border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all cursor-pointer ${
-              activeControlSource === 'keyboard' ? 'bg-[#FFCC00] text-black' : 'bg-[#00D1FF] text-black'
-            }`}
+            className={`flex items-center gap-1.5 px-3 py-1 font-mono text-xs font-black uppercase border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all cursor-pointer ${activeControlSource === 'keyboard' ? 'bg-[#FFCC00] text-black' : 'bg-[#00D1FF] text-black'
+              }`}
             id="toggle-source-btn"
           >
             {activeControlSource === 'keyboard' ? (
@@ -398,7 +404,7 @@ export const TMController: React.FC<TMControllerProps> = ({
 
       {/* Grid Layout: Video Feed and Live Config mappings */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
-        
+
         {/* Video Viewfinder / Camera block */}
         <div className="flex flex-col">
           <div className="relative aspect-video w-full bg-black border-4 border-black overflow-hidden flex items-center justify-center group shadow-inner">
@@ -479,21 +485,20 @@ export const TMController: React.FC<TMControllerProps> = ({
                   const pred = livePredictions.find(lp => lp.className === rule.className);
                   const confidence = pred ? pred.probability : 0;
                   const isExceeded = confidence >= rule.threshold;
-                  
+
                   return (
-                    <div 
-                      key={rule.className} 
-                      className={`p-3 border-2 transition-all ${
-                        isExceeded && rule.action !== 'neutral'
-                          ? 'bg-amber-100 border-red-500 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' 
+                    <div
+                      key={rule.className}
+                      className={`p-3 border-2 transition-all ${isExceeded && rule.action !== 'neutral'
+                          ? 'bg-amber-100 border-red-500 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
                           : 'bg-slate-50 border-black'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center justify-between mb-2 gap-1">
                         <span className="text-xs font-mono font-black truncate text-black uppercase">
                           {rule.className}
                         </span>
-                        
+
                         <div className="flex items-center gap-1 shrink-0">
                           <select
                             value={rule.action}
@@ -516,10 +521,9 @@ export const TMController: React.FC<TMControllerProps> = ({
                           </span>
                         </div>
                         <div className="w-full bg-slate-200 h-2 border-2 border-black overflow-hidden">
-                          <div 
-                            className={`h-full transition-all duration-75 ${
-                              isExceeded && rule.action !== 'neutral' ? 'bg-[#FF4D4D]' : 'bg-slate-600'
-                            }`}
+                          <div
+                            className={`h-full transition-all duration-75 ${isExceeded && rule.action !== 'neutral' ? 'bg-[#FF4D4D]' : 'bg-slate-600'
+                              }`}
                             style={{ width: `${confidence * 100}%` }}
                           />
                         </div>
@@ -564,11 +568,10 @@ export const TMController: React.FC<TMControllerProps> = ({
                     onMouseUp={() => activeSimulation('neutral')}
                     onTouchStart={() => activeSimulation('jump')}
                     onTouchEnd={() => activeSimulation('neutral')}
-                    className={`py-2 px-3 font-mono font-black text-xs border-2 border-black outline-none cursor-pointer flex justify-between items-center transition-all ${
-                      simulatedClass === 'jump'
+                    className={`py-2 px-3 font-mono font-black text-xs border-2 border-black outline-none cursor-pointer flex justify-between items-center transition-all ${simulatedClass === 'jump'
                         ? 'bg-[#FFCC00] text-black shadow-none translate-x-[1px] translate-y-[1px]'
                         : 'bg-white text-black hover:bg-slate-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none'
-                    }`}
+                      }`}
                   >
                     <span>SIMULATE &quot;JUMP&quot;</span>
                     <span className="text-[9px] px-1 bg-black text-white font-mono">HOLD SPACE</span>
@@ -579,11 +582,10 @@ export const TMController: React.FC<TMControllerProps> = ({
                     onMouseUp={() => activeSimulation('neutral')}
                     onTouchStart={() => activeSimulation('crouch')}
                     onTouchEnd={() => activeSimulation('neutral')}
-                    className={`py-2 px-3 font-mono font-black text-xs border-2 border-black outline-none cursor-pointer flex justify-between items-center transition-all ${
-                      simulatedClass === 'crouch'
+                    className={`py-2 px-3 font-mono font-black text-xs border-2 border-black outline-none cursor-pointer flex justify-between items-center transition-all ${simulatedClass === 'crouch'
                         ? 'bg-[#FFCC00] text-black shadow-none translate-x-[1px] translate-y-[1px]'
                         : 'bg-white text-black hover:bg-slate-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none'
-                    }`}
+                      }`}
                   >
                     <span>SIMULATE &quot;CROUCH&quot;</span>
                     <span className="text-[9px] px-1 bg-black text-white font-mono">HOLD DOWN</span>
