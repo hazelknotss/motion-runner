@@ -1,0 +1,6 @@
+{
+  "name": "8-Bit Teachable Runner",
+  "description": "An 8-bit platformer game inspired by the Google Dino Run, controlled dynamically by a web camera or custom trained Teachable Machine model.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
