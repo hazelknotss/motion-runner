@@ -167,7 +167,7 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(({
     const s = stateRef.current;
     if (!s.isJumping && !s.isCrouching) {
       s.isJumping = true;
-      s.vy = -12; // Initial jump velocity
+      s.vy = -15.5; // Initial jump velocity
       audio.playJump();
       
       // Spawn tiny ground dust particles on takeoff
@@ -408,15 +408,15 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(({
 
     // 1. UPDATE STATE & CONTROLS
     // Score increment
-    s.distance += 0.15;
+    s.distance += 0.35;
     s.score = Math.floor(s.distance) + (s.coins * 30); // Coins supercharge score
     onScoreUpdate(s.score);
 
-    // Difficulty Speed increment (slow ramp up)
-    const currentSpeed = Math.min(6.0 + (s.distance * 0.0015), 14.0);
+    // Difficulty Speed increment (elevated baseline & acceleration curve)
+    const currentSpeed = Math.min(11.5 + (s.distance * 0.0035), 24.0);
 
-    // Gravity & Jump Physics
-    const gravity = 0.58;
+    // Gravity & Jump Physics (tuned to feel crisp and snappy at higher scrolling rates)
+    const gravity = 0.92;
     if (s.isJumping) {
       s.vy += gravity;
       s.y += s.vy;
