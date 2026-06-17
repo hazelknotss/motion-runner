@@ -345,15 +345,14 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(({
   // Spawn dynamic obstacles
   const spawnObstacle = (distance: number, speed: number) => {
     const timeSinceLast = distance - lastObstacleSpawnRef.current;
-    const minInterval = 280; // Safe minimum pixels between obstacles
+    const minInterval = 12; // Far more action-heavy interval (approx ~350-400 physical pixels)
     
-    // Low spawn rate early on, increases slightly
     if (timeSinceLast < minInterval) return;
 
-    // Random roll to trigger spawn
-    if (Math.random() < 0.015) {
-      // Pick obstacle type dynamically based on difficulty/distance
-      const types: ObstacleType[] = ['cactus_small', 'cactus_large', 'cactus_double', 'coin'];
+    // High spawn triggering chance
+    if (Math.random() < 0.08) {
+      // Pick obstacle type dynamically based on difficulty/distance (higher coin ratio)
+      const types: ObstacleType[] = ['cactus_small', 'cactus_large', 'cactus_double', 'coin', 'coin'];
       if (distance > 300) {
         types.push('bird_high', 'bird_low');
       }
@@ -374,21 +373,38 @@ export const GameCanvas = forwardRef<GameCanvasHandle, GameCanvasProps>(({
         w = 34; h = 26; y = 140; // High flyer, must crouch or stand still
       } else if (selectedType === 'bird_low') {
         w = 34; h = 26; y = 195; // Low flyer, must jump over
-      } else if (selectedType === 'coin') {
-        w = 24; h = 24; y = 140 + Math.random() * 80; // Floating gold coin
       }
 
-      obstaclesRef.current.push({
-        id: Math.random().toString(36).substr(2, 9),
-        type: selectedType,
-        x: 820,
-        y,
-        width: w,
-        height: h,
-        speed,
-        passed: false,
-        frame: 0
-      });
+      if (selectedType === 'coin') {
+        // Spawn a stream of 3 to 5 coins for amazing gold collection thrills!
+        const coinCount = Math.floor(Math.random() * 3) + 3;
+        const baseCoinY = 120 + Math.random() * 75; // float at varied jump heights
+        for (let i = 0; i < coinCount; i++) {
+          obstaclesRef.current.push({
+            id: Math.random().toString(36).substr(2, 9),
+            type: 'coin',
+            x: 820 + (i * 38), // neatly spaced cluster
+            y: baseCoinY,
+            width: 24,
+            height: 24,
+            speed,
+            passed: false,
+            frame: 0
+          });
+        }
+      } else {
+        obstaclesRef.current.push({
+          id: Math.random().toString(36).substr(2, 9),
+          type: selectedType,
+          x: 820,
+          y,
+          width: w,
+          height: h,
+          speed,
+          passed: false,
+          frame: 0
+        });
+      }
 
       lastObstacleSpawnRef.current = distance;
     }
